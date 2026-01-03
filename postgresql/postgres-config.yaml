@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: postgres
+data:
+  postgresql.conf: |
+    max_connections = 200
+    
+    # Memory
+    shared_buffers = 2GB
+    effective_cache_size = 6GB
+    maintenance_work_mem = 1GB
+    work_mem = 20MB
+    
+    # WAL
+    wal_buffers = 16MB
+    min_wal_size = 1GB
+    max_wal_size = 4GB
+    
+    # Query Planner
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+    # Logging
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_statement = 'all'
+    log_duration = on
+    
+    # Autovacuum
+    autovacuum = on
