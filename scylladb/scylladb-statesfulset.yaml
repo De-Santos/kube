@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: scylladb
+  namespace: scylladb
+spec:
+  serviceName: scylladb-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: scylladb
+  template:
+    metadata:
+      labels:
+        app: scylladb
+    spec:
+      containers:
+      - name: scylladb
+        image: scylladb/scylla:2025.4
+        ports:
+        - containerPort: 9042
+          name: cql
+        - containerPort: 7000
+          name: intra-node
+        - containerPort: 7001
+          name: tls-intra-node
+        - containerPort: 7199
+          name: jmx
+        - containerPort: 10000
+          name: rest-api
+        - containerPort: 9180
+          name: prometheus
+        env:
+        - name: SCYLLA_CLUSTER_NAME
+          value: "scylla-cluster"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        command:
+        - /docker-entrypoint.py
+        args:
+          - --smp=4
+          - --memory=8G
+          - --overprovisioned=1
+          - --api-address=0.0.0.0
+          - --listen-address=$(POD_IP)
+          - --rpc-address=$(POD_IP)
+          - --broadcast-address=$(POD_IP)
+          - --broadcast-rpc-address=$(POD_IP)
+          - --seeds=scylladb-0.scylladb-headless.scylladb.svc.cluster.local
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/scylla
+        - name: config
+          mountPath: /etc/scylla/scylla.yaml
+          subPath: scylla.yaml
+        - name: config
+          mountPath: /etc/scylla/cassandra-rackdc.properties
+          subPath: cassandra-rackdc.properties
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "2000m"
+          limits:
+            memory: "12Gi"
+            cpu: "4000m"
+        livenessProbe:
+          tcpSocket:
+            port: 9042
+          initialDelaySeconds: 300
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 9042
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+      volumes:
+      - name: config
+        configMap:
+          name: scylladb-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 15Gi
+          
