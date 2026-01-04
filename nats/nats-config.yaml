@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+  namespace: nats
+data:
+  nats.conf: |
+    port: 4222
+    monitor_port: 8222
+    
+    # JetStream
+    jetstream {
+      store_dir: /data/jetstream
+      max_mem: 2G
+      max_file: 10G
+    }
+    
+    # Limits
+    max_payload: 8MB
+    max_connections: 10000
+    max_subscriptions: 100000
+    
+    # Logging
+    log_file: "/dev/stdout"
+    logtime: true
+    debug: false
+    trace: false
+
